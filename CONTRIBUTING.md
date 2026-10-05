@@ -15,7 +15,7 @@ Thank you for helping. This repository values computed, cited output over volume
 
 ## Adding or changing a skill
 
-1. Skills live in `plugins/agent-identity-governance/skills/<name>/SKILL.md`. The frontmatter needs `name` (equal to the directory name), a `description` in double quotes of at most 600 characters that starts with a verb, puts the goal before the mechanism, quotes one phrase a user would type in single quotes, and says "Use when ..." and "Not for ...", plus `license: MIT`, `compatibility` and `metadata`.
+1. Skills live in `plugins/agent-identity-governance/skills/<name>/SKILL.md`. The frontmatter needs `name` (equal to the directory name), a `description` in double quotes of at most 600 characters that starts with a verb, puts the goal before the mechanism, quotes one phrase of 2 to 8 words a user would type in double quotes, and says "Use when ..." and "Not for ...", plus `license: MIT`, `compatibility` and `metadata`.
 2. Keep the body order: intro, the untrusted-data line, "When to use it", "Inputs" (the exact read-only commands that produce each export, with a small example of the shape), "Steps", "Script" (usage with real flags and exit codes), "Output", "Limits", "Related skills".
 3. Put the script in the skill's own `scripts/` folder, reference it as `python3 "${CLAUDE_PLUGIN_ROOT}/skills/<name>/scripts/<file>.py"`, make it executable, add a subcommand to `COMMANDS` in `scripts/cli.py`, a `force-include` line in `pyproject.toml` and the subcommand to the container loop in `ci.yml`.
 4. Add the tests, a row in both READMEs and in the root README's subcommand table, and a line under `Unreleased` in `CHANGELOG.md`. The validator discovers new skills by itself.
