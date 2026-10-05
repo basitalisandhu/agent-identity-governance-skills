@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Real exports and outputs stay out of the repository; tests build their own synthetic inputs
+exports/
+evidence/
+pack/
+inventory.json
+inventory.md
+radar.md
+runbook.md
+timeline.md
+*.sarif
+aws-credential-report.csv
+aws-access-keys.json
+aws-authorization-details.json
+entra-*.json
+github-*.json
+register.csv
+other-keys.csv
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/

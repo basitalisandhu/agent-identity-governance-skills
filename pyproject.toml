@@ -1,0 +1,97 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-identity-governance-skills"
+version = "0.1.0"
+description = "Governance for the non-human identities AI agents and automations run as, from saved exports: one inventory across Entra ID, AWS IAM, GitHub and a register, an Entra agent identity review, quarterly recertification sheets, a credential expiry radar, an MCP server and connector register check, an action timeline, a kill switch runbook and a leaked credential response pack."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Muhammad Basit Ali" }]
+keywords = [
+  "claude-code",
+  "claude-code-plugin",
+  "agent-skills",
+  "non-human-identity",
+  "workload-identity",
+  "service-principal",
+  "entra-id",
+  "agent-identity",
+  "access-review",
+  "recertification",
+  "credential-expiry",
+  "secret-rotation",
+  "mcp",
+  "connector-register",
+  "cloudtrail",
+  "kill-switch",
+  "incident-response",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.scripts]
+agent-identity-governance = "agent_identity_governance_skills.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/basitalisandhu/agent-identity-governance-skills"
+Repository = "https://github.com/basitalisandhu/agent-identity-governance-skills"
+Issues = "https://github.com/basitalisandhu/agent-identity-governance-skills/issues"
+Changelog = "https://github.com/basitalisandhu/agent-identity-governance-skills/blob/main/CHANGELOG.md"
+
+# The wheel carries the dispatcher and the skill scripts only: agent_identity_governance_skills/cli.py and
+# agent_identity_governance_skills/skills/<skill>/scripts/*.py. The dispatcher finds the skills next to itself.
+# Adding a skill: add one force-include line for its scripts folder.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"scripts/cli.py" = "agent_identity_governance_skills/cli.py"
+"plugins/agent-identity-governance/skills/nhi-inventory/scripts" = "agent_identity_governance_skills/skills/nhi-inventory/scripts"
+"plugins/agent-identity-governance/skills/entra-agent-id-review/scripts" = "agent_identity_governance_skills/skills/entra-agent-id-review/scripts"
+"plugins/agent-identity-governance/skills/agent-recertification/scripts" = "agent_identity_governance_skills/skills/agent-recertification/scripts"
+"plugins/agent-identity-governance/skills/credential-expiry-radar/scripts" = "agent_identity_governance_skills/skills/credential-expiry-radar/scripts"
+"plugins/agent-identity-governance/skills/connector-register/scripts" = "agent_identity_governance_skills/skills/connector-register/scripts"
+"plugins/agent-identity-governance/skills/agent-action-timeline/scripts" = "agent_identity_governance_skills/skills/agent-action-timeline/scripts"
+"plugins/agent-identity-governance/skills/agent-kill-switch-runbook/scripts" = "agent_identity_governance_skills/skills/agent-kill-switch-runbook/scripts"
+"plugins/agent-identity-governance/skills/leaked-credential-response/scripts" = "agent_identity_governance_skills/skills/leaked-credential-response/scripts"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "scripts/cli.py",
+  "plugins/agent-identity-governance/**",
+  "tests/**",
+  "README.md",
+  "LICENSE",
+  "CHANGELOG.md",
+  "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
