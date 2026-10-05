@@ -40,7 +40,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
    - as a container image (GitHub Packages, linux/amd64 and linux/arm64), published when a version tag is pushed, signed with cosign (keyless), with a build provenance attestation and an SPDX SBOM attached to the GitHub Release. Mount the export folder at `/work`:
 
      ```bash
-     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.1.0 inventory /work/exports --as-of 2026-10-05
+     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.1.1 inventory /work/exports --as-of 2026-10-05
      ```
 
 | Subcommand | Script (skill) |

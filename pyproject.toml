@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-identity-governance-skills"
-version = "0.1.0"
+version = "0.1.1"
 description = "Governance for the non-human identities AI agents and automations run as, from saved exports: one inventory across Entra ID, AWS IAM, GitHub and a register, an Entra agent identity review, quarterly recertification sheets, a credential expiry radar, an MCP server and connector register check, an action timeline, a kill switch runbook and a leaked credential response pack."
 readme = "README.md"
 requires-python = ">=3.10"

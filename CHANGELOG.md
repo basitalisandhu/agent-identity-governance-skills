@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-05
+
+### Changed
+
+- The phrase a user would type in each of the eight skill descriptions is now in double quotes instead of single quotes, so description linters and skill listings recognise it as a trigger phrase.
+- `scripts/validate_plugin.py` now requires a double-quoted trigger phrase of 2 to 8 words in every description (the single-quote rule is gone); the description rules moved into `description_problems()`, with tests.
+
 ## [0.1.0] - 2026-10-05
 
 ### Added
