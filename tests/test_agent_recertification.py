@@ -164,3 +164,58 @@ def test_bad_input_exits_2(tmp_path):
     write_json(tmp_path, {"ok.json": {"identities": []}})
     assert run_main(mod, [str(tmp_path / "ok.json"), "--attestations", str(tmp_path / "att.csv"), *AS_OF])[0] == 2
     assert run_main(mod, [str(tmp_path / "ok.json"), "--as-of", "soon"])[0] == 2
+
+
+def test_csv_inventory_with_empty_or_repeated_id_is_bad_input(tmp_path):
+    head = "id,name,type,owner,last_used\n"
+    for body, msg in (
+        ("a,A,agent,sam@example.com,\n,B,agent,,\n", "line 3: the id is empty"),
+        ("a,A,agent,,\na,A2,agent,,\n", "listed twice"),
+    ):
+        inv = write_files(tmp_path, {"inv.csv": head + body}) / "inv.csv"
+        rc, _, err = run_main(mod, [str(inv), *AS_OF])
+        assert rc == 2 and msg in err
+
+
+def test_future_attestation_counts_as_stale(tmp_path):
+    folder = write_json(tmp_path, {"inv.json": {"identities": [identity("entra:x", ["sam@example.com"])]}})
+    write_files(folder, {"att.csv": "identity_id,decision,attested_on\nentra:x,keep,2062-08-01\n"})
+    rc, doc = run_json(mod, [str(folder / "inv.json"), "--attestations", str(folder / "att.csv"), *AS_OF])
+    assert rc == 1 and doc["identities"][0]["flags"] == ["attestation-stale"]
+
+
+def test_users_export_as_a_list_of_pages(tmp_path):
+    pages = [
+        {"value": [{"userPrincipalName": "sam@example.com", "accountEnabled": True}]},
+        {"value": [{"userPrincipalName": "lee@example.com", "accountEnabled": False}]},
+    ]
+    inv = {"identities": [identity("entra:a", ["sam@example.com"]), identity("entra:b", ["lee@example.com"])]}
+    folder = write_json(tmp_path, {"inv.json": inv, "users.json": pages})
+    _, doc = run_json(mod, [str(folder / "inv.json"), "--users", str(folder / "users.json"), *AS_OF])
+    flags = {r["identity_id"]: r["owner_status"] for r in doc["identities"]}
+    assert flags == {"entra:a": "active", "entra:b": "left: lee@example.com"}
+
+
+def test_users_export_without_names_is_bad_input(tmp_path):
+    folder = write_json(
+        tmp_path, {"inv.json": INVENTORY, "users.json": {"value": [{"id": "1", "accountEnabled": True}]}}
+    )
+    rc, _, err = run_main(mod, [str(folder / "inv.json"), "--users", str(folder / "users.json"), *AS_OF])
+    assert rc == 2 and "no userPrincipalName or mail" in err
+
+
+def test_owners_that_slug_alike_get_separate_sheets(tmp_path):
+    inv = {"identities": [identity("entra:a", ["sam@example.com"]), identity("entra:b", ["sam.example.com"])]}
+    folder = write_json(tmp_path, {"inv.json": inv})
+    rc, _, _ = run_main(mod, [str(folder / "inv.json"), *AS_OF, "--out", str(tmp_path / "recert")])
+    sheets = sorted(p.name for p in (tmp_path / "recert").glob("review-*.md"))
+    assert sheets == ["review-sam-example-com-2.md", "review-sam-example-com.md"]
+
+
+def test_out_that_is_a_file_and_bad_max_age_exit_2(tmp_path):
+    folder = write_json(tmp_path, {"inv.json": INVENTORY})
+    (tmp_path / "taken").write_text("x", encoding="utf-8")
+    rc, _, err = run_main(mod, [str(folder / "inv.json"), *AS_OF, "--out", str(tmp_path / "taken")])
+    assert rc == 2 and "cannot write" in err
+    rc, _, err = run_main(mod, [str(folder / "inv.json"), *AS_OF, "--max-age", "0"])
+    assert rc == 2 and "--max-age" in err

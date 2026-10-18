@@ -15,13 +15,31 @@ This pack does the governance work from files. Each skill reads exports you take
 /plugin install agent-identity-governance@agent-identity-governance-skills
 ```
 
-Quickstart: export your Entra applications and service principals into a folder, open Claude Code there and ask "which agent identities have no owner?". Or run a script directly from a clone of this repository:
+Quick start from a clone, on the synthetic exports bundled in [`plugins/agent-identity-governance/examples/`](plugins/agent-identity-governance/examples) (Entra apps, an Entra Agent ID blueprint with two agent identities, an IAM user and role, a register row), so you can see each skill before exporting anything:
 
 ```bash
-python3 scripts/cli.py inventory ./exports --as-of 2026-10-05 --json --out inventory.json
-python3 scripts/cli.py expiry-radar ./exports --as-of 2026-10-05
-python3 scripts/cli.py kill-switch inventory.json --identity aws-role:agent-runtime --out runbook.md
+git clone https://github.com/basitalisandhu/agent-identity-governance-skills && cd agent-identity-governance-skills
+python3 scripts/cli.py inventory plugins/agent-identity-governance/examples/exports --as-of 2026-10-05
+python3 scripts/cli.py expiry-radar plugins/agent-identity-governance/examples/exports --as-of 2026-10-05
 ```
+
+Real output of the first command (exit code 1, because three identities need a person):
+
+```text
+| Identity                                     | Type                   | Owner                | Last used  | Credentials | Flags             |
+|----------------------------------------------|------------------------|----------------------|------------|-------------|-------------------|
+| `aws-role:agent-runtime`                     | aws-iam-role           | -                    | 2026-10-04 | 0           | no-owner          |
+| `entra:00000000-0000-0000-0000-0000000000b2` | entra-app              | -                    | 2026-03-01 | 1           | no-owner, dormant |
+| `entra:00000000-0000-0000-0000-0000000000c3` | entra-managed-identity | platform@example.com | never      | 0           | never-used        |
+| `entra:00000000-0000-0000-0000-0000000000d4` | entra-agent-blueprint  | kim@example.com      | 2026-10-04 | 1           | -                 |
+| `entra:00000000-0000-0000-0000-0000000000e5` | entra-agent-identity   | kim@example.com      | 2026-10-04 | 0           | -                 |
+
+## Entra Agent ID blueprints
+- `entra:...d4` (ledger-agent-blueprint): 1 credential(s) shared by 2 agent identities. Rotating or removing a
+  blueprint credential, or disabling the blueprint, affects every one of them.
+```
+
+Five of the nine rows and the oldest-credential column are left out here. In Claude Code, put your own exports in a folder and ask "which agent identities have no owner?"; every SKILL.md starts its Script section with the example run for that skill.
 
 Questions, bugs and ideas: open an issue on this repository. Security reports: see [SECURITY.md](SECURITY.md).
 
@@ -40,7 +58,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
    - as a container image (GitHub Packages, linux/amd64 and linux/arm64), published when a version tag is pushed, signed with cosign (keyless), with a build provenance attestation and an SPDX SBOM attached to the GitHub Release. Mount the export folder at `/work`:
 
      ```bash
-     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.1.1 inventory /work/exports --as-of 2026-10-05
+     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.2.0 inventory /work/exports --as-of 2026-10-05
      ```
 
 | Subcommand | Script (skill) |

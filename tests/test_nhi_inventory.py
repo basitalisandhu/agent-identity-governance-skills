@@ -250,3 +250,90 @@ def test_bad_input_exits_2(tmp_path):
     write_files(tmp_path / "reg", {"register.csv": "name,owner\nx,y\n"})
     assert run_main(mod, [str(tmp_path / "reg"), *AS_OF])[0] == 2
     assert run_main(mod, [str(entra_folder(tmp_path)), "--as-of", "05/10/2026"])[0] == 2
+
+
+BLUEPRINT_APP = "00000000-0000-0000-0000-0000000000d4"
+AGENT_APP = "00000000-0000-0000-0000-0000000000e5"
+AGENT_APP_2 = "00000000-0000-0000-0000-0000000000f6"
+
+
+def agent_id_folder(tmp_path, with_sps=False):
+    files = {
+        "entra-agent-blueprints.json": {
+            "value": [
+                {
+                    "@odata.type": "#microsoft.graph.agentIdentityBlueprint",
+                    "id": "obj-bp",
+                    "appId": BLUEPRINT_APP,
+                    "displayName": "ledger-blueprint",
+                    "createdDateTime": "2026-01-01T00:00:00Z",
+                    "sponsors": [{"userPrincipalName": "kim@example.com"}],
+                    "passwordCredentials": [
+                        {
+                            "keyId": "33333333-0000-0000-0000-00000000cafe",
+                            "startDateTime": "2026-01-01T00:00:00Z",
+                            "endDateTime": "2026-12-31T00:00:00Z",
+                        }
+                    ],
+                }
+            ]
+        },
+        "entra-agent-identities.json": {
+            "value": [
+                {
+                    "@odata.type": "#microsoft.graph.agentIdentity",
+                    "id": "ai-1",
+                    "appId": AGENT_APP,
+                    "displayName": "ledger worker 1",
+                    "agentIdentityBlueprintId": BLUEPRINT_APP,
+                    "servicePrincipalType": "ServiceIdentity",
+                    "createdDateTime": "2026-02-01T00:00:00Z",
+                },
+                {
+                    "@odata.type": "#microsoft.graph.agentIdentity",
+                    "id": "ai-2",
+                    "appId": AGENT_APP_2,
+                    "displayName": "ledger worker 2",
+                    "agentIdentityBlueprintId": BLUEPRINT_APP,
+                    "accountEnabled": False,
+                    "sponsors": [{"userPrincipalName": "amy@example.com"}],
+                },
+            ]
+        },
+    }
+    if with_sps:  # the plain service principal list also returns agent identities
+        files["entra-service-principals.json"] = {"value": [dict(files["entra-agent-identities.json"]["value"][0])]}
+        files["entra-applications.json"] = {"value": [dict(files["entra-agent-blueprints.json"]["value"][0])]}
+    return write_json(tmp_path / "exports", files)
+
+
+def test_agent_id_blueprints_and_agent_identities(tmp_path):
+    rc, doc = run_json(mod, [str(agent_id_folder(tmp_path)), *AS_OF])
+    ids = by_id(doc)
+    bp, a1, a2 = ids[f"entra:{BLUEPRINT_APP}"], ids[f"entra:{AGENT_APP}"], ids[f"entra:{AGENT_APP_2}"]
+    assert bp["type"] == "entra-agent-blueprint" and bp["owners"] == ["kim@example.com"]
+    assert bp["credential_count"] == 1 and bp["refs"]["agent_identities"] == [
+        f"entra:{AGENT_APP}",
+        f"entra:{AGENT_APP_2}",
+    ]
+    assert a1["type"] == "entra-agent-identity" and a1["credential_count"] == 0
+    assert a1["owners"] == ["kim@example.com"] and a1["refs"]["owners_from"] == "blueprint"
+    assert "ledger-blueprint" in a1["purpose"]
+    assert a2["owners"] == ["amy@example.com"] and "disabled" in a2["flags"]
+    _, out, _ = run_main(mod, [str(agent_id_folder(tmp_path)), *AS_OF])
+    assert "## Entra Agent ID blueprints" in out and "shared by 2 agent identities" in out
+    _, raw, _ = run_main(mod, [str(agent_id_folder(tmp_path)), *AS_OF, "--json"])
+    assert "****cafe" in raw and "33333333-0000-0000-0000-00000000cafe" not in raw
+
+
+def test_agent_id_objects_in_the_general_exports_are_not_counted_twice(tmp_path):
+    _, doc = run_json(mod, [str(agent_id_folder(tmp_path, with_sps=True)), *AS_OF])
+    ids = by_id(doc)
+    assert sorted(ids) == sorted([f"entra:{BLUEPRINT_APP}", f"entra:{AGENT_APP}", f"entra:{AGENT_APP_2}"])
+    assert ids[f"entra:{BLUEPRINT_APP}"]["credential_count"] == 1
+    assert ids[f"entra:{AGENT_APP}"]["type"] == "entra-agent-identity"
+
+
+def test_unwritable_out_exits_2(tmp_path):
+    rc, _, err = run_main(mod, [str(entra_folder(tmp_path)), *AS_OF, "--out", str(tmp_path / "no" / "inv.md")])
+    assert rc == 2 and "cannot write" in err
