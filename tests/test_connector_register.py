@@ -157,3 +157,51 @@ def test_bad_input_exits_2(tmp_path):
     assert run_main(mod, [str(tmp_path / "ok.csv"), "--tools", str(tmp_path / "tools"), *AS_OF])[0] == 2
     assert run_main(mod, [str(tmp_path / "ok.csv"), "--tools", str(tmp_path / "nope"), *AS_OF])[0] == 2
     assert run_main(mod, [str(tmp_path / "ok.csv"), "--as-of", "2026-13-01"])[0] == 2
+
+
+ENTRY = "name,kind,owner,purpose,data_classification,permissions,review_date,tools\n"
+
+
+def test_scoped_names_and_case_match_listing_files(tmp_path):
+    folder = write_files(
+        tmp_path,
+        {
+            "register.csv": ENTRY
+            + "@acme/Tickets-MCP,mcp-server,sam@example.com,tickets,internal,t:read,2026-12-01,list\n"
+        },
+    )
+    write_json(tmp_path / "tools", {"@acme__tickets-mcp.json": {"tools": [{"name": "list"}, {"name": "delete"}]}})
+    rc, doc = run_json(mod, [str(folder / "register.csv"), "--tools", str(tmp_path / "tools"), *AS_OF])
+    assert rc == 1
+    assert [(f["rule"], f["detail"]) for f in doc["findings"]] == [
+        ("unregistered-tool", "tool 'delete' is offered but not in the register")
+    ]
+
+
+def test_two_files_for_one_name_is_bad_input(tmp_path):
+    folder = write_files(tmp_path, {"register.csv": ENTRY + "a,mcp-server,o,p,internal,x,2026-12-01,\n"})
+    write_json(tmp_path / "tools", {"A.json": {"tools": []}, "a.json": {"tools": []}})
+    if len(list((tmp_path / "tools").glob("*.json"))) < 2:  # case-insensitive file system: nothing to test
+        return
+    rc, _, err = run_main(mod, [str(folder / "register.csv"), "--tools", str(tmp_path / "tools"), *AS_OF])
+    assert rc == 2 and "same register name" in err
+
+
+def test_duplicate_names_differing_in_case(tmp_path):
+    rows = "wiki,connector,o,p,internal,x,2026-12-01,\nWiki ,connector,o,p,internal,x,2026-12-01,\n"
+    _, doc = run_json(mod, [str(write_files(tmp_path, {"r.csv": ENTRY + rows}) / "r.csv"), *AS_OF])
+    assert [f["rule"] for f in doc["findings"]] == ["duplicate-name"]
+
+
+def test_review_date_with_a_time_part_is_read_as_a_date(tmp_path):
+    rows = "a,connector,o,p,internal,x,2026-09-01T00:00:00,\nb,connector,o,p,internal,x,2026-12-01 09:30:00,\n"
+    _, doc = run_json(mod, [str(write_files(tmp_path, {"r.csv": ENTRY + rows}) / "r.csv"), *AS_OF])
+    assert [(f["rule"], f["name"]) for f in doc["findings"]] == [("review-overdue", "a")]
+
+
+def test_empty_classifications_and_unwritable_out_exit_2(tmp_path):
+    reg = str(write_files(tmp_path, {"r.csv": ENTRY + "a,connector,o,p,internal,x,2026-12-01,\n"}) / "r.csv")
+    rc, _, err = run_main(mod, [reg, "--classifications", " , ", *AS_OF])
+    assert rc == 2 and "at least one value" in err
+    rc, _, err = run_main(mod, [reg, *AS_OF, "--out", str(tmp_path / "missing" / "out.md")])
+    assert rc == 2 and "cannot write" in err

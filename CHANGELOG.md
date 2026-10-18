@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-18
+
+### Added
+
+- Bundled synthetic examples in `plugins/agent-identity-governance/examples/` (Entra apps and service principals, an Entra Agent ID blueprint with two agent identities and an inherited Graph permission, an IAM user and role, a register, attestations, a users export, a connector register with tool listings and a manifest, a CloudTrail sample and an allow list). Every SKILL.md starts its Script section with the run on them, and `tests/test_examples.py` keeps those runs and their exit codes true. Before this, a new user had nothing to run a skill on without exporting from a tenant first.
+- Entra Agent ID across the pack. `nhi-inventory` reads `entra-agent-blueprints.json` and `entra-agent-identities.json` (Graph v1.0 `applications/microsoft.graph.agentIdentityBlueprint` and `servicePrincipals/microsoft.graph.agentIdentity`): blueprints carry the credentials and list the agent identities that depend on them, agent identities take their sponsors (or the blueprint's) as owners, a blueprint is in use while any of its agents is, and the report has a section per blueprint. `entra-agent-id-review` reviews the blueprint principal with the blueprint's credentials and sponsors, lists permissions granted to it as inherited on every agent identity (a high-risk one is HIGH on each) and names the blueprint's sponsors when an agent has none. `credential-expiry-radar` reads blueprint credentials, says how many agent identities use each, and counts a blueprint listed in two exports once. `agent-kill-switch-runbook` disables an agent identity with `PATCH /servicePrincipals/{id}/microsoft.graph.agentIdentity` and leaves the shared blueprint credentials alone, and a blueprint runbook first lists every agent it would stop.
+
+### Fixed
+
+- `agent-recertification`: two owners whose addresses slug to the same file name (`sam@example.com`, `sam.example.com`) wrote one sheet over the other; later ones are numbered. A users export saved as a list of pages made every owner count as left, and an export with no `userPrincipalName` or `mail` now exits 2 instead. An attestation dated after `--as-of` counted as fresh; it is now stale. A CSV inventory row with an empty or repeated id, `--max-age 0` and an `--out` that is a file exit 2.
+- `connector-register`: listing and manifest files now match register names without regard to case, and `/` in a name is written `__` in the file name (`@acme/tickets-mcp`), so scoped npm names can be checked at all; duplicate names that differ only in case or spaces are reported; a review date saved with a time part is read as a date; an empty `--classifications` exits 2.
+- `credential-expiry-radar`: a credential entry that is not an object no longer crashes the run; owners include sponsors.
+- Every script that takes `--out FILE` exits 2 with a message when the file cannot be written, instead of a traceback.
+- Each SKILL.md says where the script is when the skill folder is copied without the plugin system (closes #7).
+
+### Changed
+
+- `nhi-inventory`, `credential-expiry-radar` and `entra-agent-id-review` descriptions mention Agent ID and say they are not the human access review pack or a tenant-wide baseline, so prompts meant for `access-review-pack` and `entra-posture-review` do not land here.
+- Version 0.2.0 in the marketplace, plugin manifest, `pyproject.toml`, the CLI and the container example.
+
 ## [0.1.1] - 2026-10-05
 
 ### Changed

@@ -17,7 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 PROG = "agent-identity-governance"
 HERE = Path(__file__).resolve().parent

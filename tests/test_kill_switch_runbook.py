@@ -198,3 +198,56 @@ def test_bad_input_exits_2(tmp_path):
     assert run_main(mod, [str(tmp_path / "list.json"), "--identity", "x"])[0] == 2
     assert run_main(mod, [inv(tmp_path), "--identity", f"entra:{APP}", "--as-of", "today"])[0] == 2
     assert run_main(mod, [inv(tmp_path), "--identity", f"entra:{APP}", "--template", str(tmp_path / "no.md")])[0] == 2
+
+
+def agent_id_inventory(tmp_path):
+    exports = write_json(
+        tmp_path / "exports",
+        {
+            "entra-agent-blueprints.json": {
+                "value": [
+                    {
+                        "appId": "bp-app",
+                        "id": "bp-obj",
+                        "displayName": "ledger-blueprint",
+                        "sponsors": [{"userPrincipalName": "kim@example.com"}],
+                        "passwordCredentials": [
+                            {"keyId": "33333333-0000-0000-0000-00000000cafe", "endDateTime": "2027-01-01T00:00:00Z"}
+                        ],
+                    }
+                ]
+            },
+            "entra-agent-identities.json": {
+                "value": [
+                    {
+                        "@odata.type": "#microsoft.graph.agentIdentity",
+                        "id": "ai-sp",
+                        "appId": "ai-app",
+                        "displayName": "ledger worker",
+                        "agentIdentityBlueprintId": "bp-app",
+                    }
+                ]
+            },
+        },
+    )
+    path = tmp_path / "inventory.json"
+    inventory_mod.main([str(exports), *AS_OF, "--json", "--out", str(path)])
+    return str(path)
+
+
+def test_agent_identity_is_disabled_without_touching_shared_blueprint_credentials(tmp_path):
+    rc, doc = run_json(mod, [agent_id_inventory(tmp_path), "--identity", "entra:ai-app", *AS_OF])
+    assert rc == 0
+    first = doc["steps"][0]
+    assert "servicePrincipals/ai-sp/microsoft.graph.agentIdentity" in first["change"]
+    assert '"accountEnabled": false' in first["change"]
+    assert not any("credential delete" in s["change"] for s in doc["steps"])
+    assert any("blueprint bp-app" in s["title"] for s in doc["steps"])
+
+
+def test_blueprint_runbook_names_every_dependent_agent_first(tmp_path):
+    rc, doc = run_json(mod, [agent_id_inventory(tmp_path), "--identity", "entra:bp-app", *AS_OF])
+    assert rc == 0 and doc["coverage"]["missing"] == []
+    assert "serve 1 agent identity" in doc["steps"][0]["title"]
+    assert "`entra:ai-app`" in doc["steps"][0]["change"]
+    assert any("<key id ending cafe>" in s["change"] for s in doc["steps"])

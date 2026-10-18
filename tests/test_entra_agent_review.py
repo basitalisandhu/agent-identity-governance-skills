@@ -227,3 +227,64 @@ def test_bad_input_exits_2(tmp_path):
     assert run_main(mod, [folder(tmp_path), "--name-pattern", "("])[0] == 2
     write_files(tmp_path / "y", {"entra-service-principals.json": "[oops"})
     assert run_main(mod, [str(tmp_path / "y"), *AS_OF])[0] == 2
+
+
+def test_agent_id_blueprint_principal_and_inherited_permissions(tmp_path):
+    folder = write_json(
+        tmp_path / "exports",
+        {
+            "entra-service-principals.json": {
+                "value": [
+                    {
+                        "@odata.type": "#microsoft.graph.agentIdentityBlueprintPrincipal",
+                        "id": "bp-sp",
+                        "appId": "bp-app",
+                        "displayName": "ledger blueprint",
+                    }
+                ]
+            },
+            "entra-agent-blueprints.json": {
+                "value": [
+                    {
+                        "id": "bp-obj",
+                        "appId": "bp-app",
+                        "displayName": "ledger blueprint",
+                        "sponsors": [{"userPrincipalName": "kim@example.com"}],
+                    }
+                ]
+            },
+            "entra-agent-identities.json": {
+                "value": [
+                    {
+                        "@odata.type": "#microsoft.graph.agentIdentity",
+                        "id": "ai-1",
+                        "appId": "ai-app",
+                        "displayName": "ledger worker",
+                        "agentIdentityBlueprintId": "bp-app",
+                    }
+                ]
+            },
+            "entra-resource-sps.json": {
+                "value": [
+                    {"id": "graph", "displayName": "Microsoft Graph", "appRoles": [{"id": "r1", "value": "Mail.Send"}]}
+                ]
+            },
+            "entra-app-role-assignments.json": {
+                "value": [{"principalId": "bp-sp", "resourceId": "graph", "appRoleId": "r1"}]
+            },
+            "entra-sign-in-activity.json": {
+                "value": [{"appId": "ai-app", "lastSignInActivity": {"lastSignInDateTime": "2026-10-04T00:00:00Z"}}]
+            },
+        },
+    )
+    rc, doc = run_json(mod, [str(folder), "--as-of", "2026-10-05"])
+    by_name = {r["display_name"]: r for r in doc["reviewed"]}
+    worker, bp = by_name["ledger worker"], by_name["ledger blueprint"]
+    assert bp["selected_because"][0] == "agent blueprint principal" and bp["sponsors"] == ["kim@example.com"]
+    assert not any(f["rule"] == "dormant" for f in bp["findings"])  # in use through its agent identity
+    assert worker["application_permissions"] == [
+        {"resource": "Microsoft Graph", "permission": "Mail.Send", "high_risk": True, "inherited": True}
+    ]
+    rules = {f["rule"]: f["detail"] for f in worker["findings"]}
+    assert "inherited from blueprint ledger blueprint" in rules["high-risk-application-permission"]
+    assert "its blueprint's are kim@example.com" in rules["no-owner"]

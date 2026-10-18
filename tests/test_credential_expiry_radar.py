@@ -158,3 +158,62 @@ def test_bad_input_exits_2(tmp_path):
     assert run_main(mod, [str(tmp_path / "b"), *AS_OF])[0] == 2
     assert run_main(mod, [entra(tmp_path), "--as-of", "tomorrow"])[0] == 2
     assert run_main(mod, [entra(tmp_path), *AS_OF, "--max-key-age", "0"])[0] == 2
+
+
+BLUEPRINT = {
+    "@odata.type": "#microsoft.graph.agentIdentityBlueprint",
+    "id": "obj-bp",
+    "appId": "bp-1",
+    "displayName": "ledger-blueprint",
+    "sponsors": [{"userPrincipalName": "kim@example.com"}],
+    "passwordCredentials": [{"keyId": "22222222-0000-0000-0000-00000000eeee", "endDateTime": "2026-10-20T00:00:00Z"}],
+}
+AGENTS = {
+    "value": [
+        {
+            "@odata.type": "#microsoft.graph.agentIdentity",
+            "id": "ai-1",
+            "appId": "ai-app-1",
+            "agentIdentityBlueprintId": "bp-1",
+        },
+        {
+            "@odata.type": "#microsoft.graph.agentIdentity",
+            "id": "ai-2",
+            "appId": "ai-app-2",
+            "agentIdentityBlueprintId": "bp-1",
+        },
+    ]
+}
+
+
+def test_blueprint_credentials_count_their_agent_identities_and_sponsors_own_them(tmp_path):
+    folder = write_json(
+        tmp_path / "exports",
+        {"entra-agent-blueprints.json": {"value": [BLUEPRINT]}, "entra-agent-identities.json": AGENTS},
+    )
+    rc, doc = run_json(mod, [str(folder), *AS_OF])
+    assert rc == 1
+    [r] = doc["credentials"]
+    assert r["kind"] == "client secret on agent blueprint, used by 2 agent identities"
+    assert r["owners"] == ["kim@example.com"] and r["bucket"] == "30" and r["key_id"] == "****eeee"
+
+
+def test_blueprint_in_both_exports_is_listed_once(tmp_path):
+    folder = write_json(
+        tmp_path / "exports",
+        {"entra-agent-blueprints.json": {"value": [BLUEPRINT]}, "entra-applications.json": {"value": [BLUEPRINT]}},
+    )
+    _, doc = run_json(mod, [str(folder), *AS_OF])
+    assert [r["key_id"] for r in doc["credentials"]] == ["****eeee"]
+    assert doc["credentials"][0]["kind"] == "client secret on agent blueprint"
+
+
+def test_malformed_credential_entries_are_skipped(tmp_path):
+    apps = {"value": [{"appId": "a", "displayName": "x", "passwordCredentials": ["oops", None, {"keyId": "k-1234"}]}]}
+    _, doc = run_json(mod, [str(write_json(tmp_path / "e", {"entra-applications.json": apps})), *AS_OF])
+    assert [(r["key_id"], r["bucket"]) for r in doc["credentials"]] == [("****1234", "no-expiry")]
+
+
+def test_unwritable_out_exits_2(tmp_path):
+    rc, _, err = run_main(mod, [entra(tmp_path), *AS_OF, "--out", str(tmp_path / "missing" / "radar.md")])
+    assert rc == 2 and "cannot write" in err
