@@ -31,3 +31,7 @@ other-keys.csv
 .DS_Store
 .idea/
 .vscode/
+
+# The synthetic examples shipped with the plugin are the one exception (no real data; tests/test_examples.py)
+!plugins/agent-identity-governance/examples/exports/
+!plugins/agent-identity-governance/examples/exports/**
