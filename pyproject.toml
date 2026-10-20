@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-identity-governance-skills"
-version = "0.2.0"
-description = "Governance for the non-human identities AI agents and automations run as, from saved exports: one inventory across Entra ID, AWS IAM, GitHub and a register, an Entra agent identity review, quarterly recertification sheets, a credential expiry radar, an MCP server and connector register check, an action timeline, a kill switch runbook and a leaked credential response pack."
+version = "0.3.0"
+description = "Governance for the non-human identities AI agents and automations run as, from saved exports: one inventory across Entra ID, AWS IAM, GitHub and a register, an Entra agent identity review, quarterly recertification sheets, a credential expiry radar, an MCP server and connector register check, an action timeline, a kill switch runbook, a leaked credential response pack and a tamper-evident audit log check."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -72,6 +72,7 @@ bypass-selection = true
 "plugins/agent-identity-governance/skills/agent-action-timeline/scripts" = "agent_identity_governance_skills/skills/agent-action-timeline/scripts"
 "plugins/agent-identity-governance/skills/agent-kill-switch-runbook/scripts" = "agent_identity_governance_skills/skills/agent-kill-switch-runbook/scripts"
 "plugins/agent-identity-governance/skills/leaked-credential-response/scripts" = "agent_identity_governance_skills/skills/leaked-credential-response/scripts"
+"plugins/agent-identity-governance/skills/agent-audit-log-integrity/scripts" = "agent_identity_governance_skills/skills/agent-audit-log-integrity/scripts"
 
 [tool.hatch.build.targets.sdist]
 include = [

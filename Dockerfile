@@ -26,7 +26,7 @@ RUN set -e; for d in /tmp/skills/*/scripts; do \
 FROM ${PYTHON_IMAGE}
 ARG VERSION=0.0.0-dev
 LABEL org.opencontainers.image.title="agent-identity-governance-skills" \
-      org.opencontainers.image.description="Non-human identity inventory, review, recertification, expiry, register, timeline, kill switch and leak response from saved exports behind one command" \
+      org.opencontainers.image.description="Non-human identity inventory, review, recertification, expiry, register, timeline, kill switch, leak response and audit log integrity from saved exports behind one command" \
       org.opencontainers.image.source="https://github.com/basitalisandhu/agent-identity-governance-skills" \
       org.opencontainers.image.url="https://github.com/basitalisandhu/agent-identity-governance-skills" \
       org.opencontainers.image.licenses="MIT" \
