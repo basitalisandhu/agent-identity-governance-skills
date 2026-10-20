@@ -1,6 +1,6 @@
 # Claude Code skills for agent identity governance: inventory, review, recertify, expire and switch off the non-human identities your AI agents and automations run as
 
-**Eight skills that treat AI agents, service principals, workload identities, API keys and MCP connectors as identities: each needs an inventory entry, an owner, a periodic review, credentials that expire and an off switch. Offline, standard-library scripts over exports you save from Entra ID, AWS, GitHub and your own registers. Tested.**
+**Nine skills that treat AI agents, service principals, workload identities, API keys and MCP connectors as identities: each needs an inventory entry, an owner, a periodic review, credentials that expire and an off switch. Offline, standard-library scripts over exports you save from Entra ID, AWS, GitHub and your own registers. Tested.**
 
 ## What this is, who it is for, and why
 
@@ -58,7 +58,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
    - as a container image (GitHub Packages, linux/amd64 and linux/arm64), published when a version tag is pushed, signed with cosign (keyless), with a build provenance attestation and an SPDX SBOM attached to the GitHub Release. Mount the export folder at `/work`:
 
      ```bash
-     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.2.0 inventory /work/exports --as-of 2026-10-05
+     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.3.0 inventory /work/exports --as-of 2026-10-05
      ```
 
 | Subcommand | Script (skill) |
@@ -71,6 +71,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
 | `timeline` | `agent_action_timeline.py` (agent-action-timeline) |
 | `kill-switch` | `kill_switch_runbook.py` (agent-kill-switch-runbook) |
 | `leaked-credential` | `leaked_credential_response.py` (leaked-credential-response) |
+| `audit-chain` | `audit_chain.py` (agent-audit-log-integrity) |
 
 ## When to use this
 
@@ -82,6 +83,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
 - Someone asks what an agent did last week, across Entra, AWS, GitHub and its own logs. `agent-action-timeline`
 - An agent is about to go live and there is no written way to stop it. `agent-kill-switch-runbook`
 - A key or token belonging to an agent turned up in a commit, a transcript or a log. `leaked-credential-response`
+- An auditor or a customer asks you to prove an agent's audit log was not edited and holds every action. `agent-audit-log-integrity`
 
 ## Skills
 
@@ -158,6 +160,34 @@ Every script reads local files only, prints Markdown by default and JSON with `-
 | Reads | the inventory, the leaked key id's last four characters, the leak time, and audit exports |
 | Produces | what the credential could reach (escalation-capable grants marked), events after the leak time with leaked-key and new-IP flags, credentials created after the leak, a rotation order, a checklist, and an evidence folder with byte-exact input copies and a SHA-256 manifest |
 | Script | `leaked_credential_response.py` |
+
+### `agent-audit-log-integrity`
+
+| | |
+|---|---|
+| Triggers on | "was this agent log edited?", "is anything missing from this audit log?" |
+| Reads | an agent audit log in JSON lines (a hook, MCP gateway or runtime log), the head value stored at sealing, an optional HMAC key file, and a Claude Code session log or a list of action ids |
+| Produces | a sealed copy with a SHA-256 or HMAC chain record on every line and a head to store elsewhere; a verify report of edited, removed, inserted and reordered lines, truncation and backwards timestamps; a coverage report of actions the log never recorded |
+| Script | `audit_chain.py` |
+
+Real output on the bundled example, a sealed log with one line edited and one removed:
+
+```bash
+python3 scripts/cli.py audit-chain verify plugins/agent-identity-governance/examples/audit/agent-actions.tampered.jsonl --head-file plugins/agent-identity-governance/examples/audit/head.txt
+```
+
+```text
+Log: agent-actions.tampered.jsonl. Lines: 5, sealed: 5, sequence 0 to 5.
+Result: NOT intact (3 problem(s)).
+
+## Findings
+
+- hash-mismatch (line 3): sequence 2: content does not match its hash (edited, or the wrong key)
+- seq-gap (line 5): sequence jumps from 3 to 5: 1 line(s) missing
+- prev-mismatch (line 5): does not link to the line before it: a line before it was removed or edited
+```
+
+The exit code is 1. `coverage` on the same log and the bundled session lists `toolu_05` and `toolu_07` as actions it never recorded.
 
 ## What this is not
 

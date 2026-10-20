@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-20
+
+### Added
+
+- `agent-audit-log-integrity`: `audit_chain.py` with three subcommands. `seal` adds `{"_chain": {"seq", "prev", "hash", "alg"}}` to every line of an agent audit log in JSON lines, where the hash is SHA-256, or HMAC-SHA256 with `--key-file`, over the sequence number, the previous hash and the line's canonical JSON, and prints the head to store outside the log writer's reach (`--start-seq` continues a chain). `verify` reports `hash-mismatch`, `seq-gap`, `prev-mismatch`, `seq-backwards`, `duplicate-seq`, `unsealed-line`, `unparseable-line`, `starts-mid-chain`, `truncated`, `head-mismatch`, `time-backwards`, `key-needed` and `mixed-algorithms`, with `appended` as information. `coverage` compares the logged action ids with a Claude Code session log's `tool_use` ids or an id list and lists actions never recorded. Exit 0, 1, 2. 13 tests, bundled examples in `examples/audit/` (a sealed log, a tampered copy, its head and a session), subcommand `audit-chain`, and a container CI sample that seals, edits and verifies a log.
+
 ## [0.2.0] - 2026-10-18
 
 ### Added

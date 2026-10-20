@@ -119,3 +119,20 @@ def test_examples_hold_no_full_key_ids_beyond_documentation_values():
     # the only AWS key id is AWS's own documentation example
     assert set(re.findall(r"AKIA[0-9A-Z]{16}", text)) <= {"AKIAIOSFODNN7EXAMPLE"}
     json.loads((EX / "exports" / "entra-applications.json").read_text(encoding="utf-8"))
+
+
+def test_audit_chain_example():
+    mod = load_script("agent-audit-log-integrity", "audit_chain.py")
+    audit = EX / "audit"
+    rc, doc = run_json(
+        mod, ["verify", str(audit / "agent-actions.sealed.jsonl"), "--head-file", str(audit / "head.txt")]
+    )
+    assert rc == 0 and doc["intact"] is True
+    rc, doc = run_json(
+        mod, ["verify", str(audit / "agent-actions.tampered.jsonl"), "--head-file", str(audit / "head.txt")]
+    )
+    assert rc == 1 and [f["kind"] for f in doc["findings"]] == ["hash-mismatch", "seq-gap", "prev-mismatch"]
+    rc, doc = run_json(
+        mod, ["coverage", str(audit / "agent-actions.tampered.jsonl"), "--transcript", str(audit / "session.jsonl")]
+    )
+    assert rc == 1 and doc["missing"] == ["toolu_05", "toolu_07"]

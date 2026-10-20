@@ -65,12 +65,19 @@ jobs:
         run: |
           docker build --build-arg VERSION=ci -t agent-identity-governance-skills:ci .
           docker run --rm agent-identity-governance-skills:ci --help > help.txt && grep "^usage: agent-identity-governance <subcommand>" help.txt
-          for s in inventory agent-review recertify expiry-radar connector-register timeline kill-switch leaked-credential; do docker run --rm agent-identity-governance-skills:ci "$s" --help > /dev/null; done
+          for s in inventory agent-review recertify expiry-radar connector-register timeline kill-switch leaked-credential audit-chain; do docker run --rm agent-identity-governance-skills:ci "$s" --help > /dev/null; done
           mkdir -p sample && printf 'id,name,type,owner\nsupport-agent,Support agent,agent,\n' > sample/register.csv
           set +e
           docker run --rm -v "$PWD/sample:/work:ro" agent-identity-governance-skills:ci inventory /work --as-of 2026-10-05 > inventory.md; test $? -eq 1 || exit 1
           set -e
           grep "^## Needs a person (1)" inventory.md
+          printf '{"ts": "2026-10-19T22:00:00Z", "tool": "Read"}\n{"ts": "2026-10-19T22:01:00Z", "tool": "Bash"}\n' > sample/actions.jsonl
+          docker run --rm -v "$PWD/sample:/work:ro" agent-identity-governance-skills:ci audit-chain seal /work/actions.jsonl > sample-sealed.jsonl
+          sed 's/"Bash"/"Write"/' sample-sealed.jsonl > sample/tampered.jsonl
+          set +e
+          docker run --rm -v "$PWD/sample:/work:ro" agent-identity-governance-skills:ci audit-chain verify /work/tampered.jsonl > chain.md; test $? -eq 1 || exit 1
+          set -e
+          grep "hash-mismatch" chain.md
           docker run --rm agent-identity-governance-skills:ci --version
           test "$(docker run --rm --entrypoint id agent-identity-governance-skills:ci -u)" = "1000"
           test "$(docker run --rm --entrypoint pwd agent-identity-governance-skills:ci)" = "/work"

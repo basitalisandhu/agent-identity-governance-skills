@@ -17,7 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 PROG = "agent-identity-governance"
 HERE = Path(__file__).resolve().parent
@@ -69,6 +69,11 @@ COMMANDS: dict[str, tuple[str, str, str]] = {
         "leaked-credential-response",
         "leaked_credential_response.py",
         "Checklist, rotation order and hashed evidence folder for a leaked credential",
+    ),
+    "audit-chain": (
+        "agent-audit-log-integrity",
+        "audit_chain.py",
+        "Seal an agent audit log as a hash chain, verify it, and list actions it never recorded",
     ),
 }
 
