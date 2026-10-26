@@ -136,3 +136,19 @@ def test_audit_chain_example():
         mod, ["coverage", str(audit / "agent-actions.tampered.jsonl"), "--transcript", str(audit / "session.jsonl")]
     )
     assert rc == 1 and doc["missing"] == ["toolu_05", "toolu_07"]
+
+
+def test_azure_activity_example():
+    mod = load_script("agent-action-timeline", "agent_action_timeline.py")
+    argv = [
+        "--identity",
+        "00000000-0000-0000-0000-0000000000c3",
+        "--azure-activity",
+        str(EX / "logs" / "azure-activity.json"),
+    ]
+    rc, doc = run_json(mod, argv)
+    assert rc == 0 and [e["action"] for e in doc["events"]] == [
+        "azure:Microsoft.Storage/storageAccounts/listKeys/action",
+        "azure:Microsoft.KeyVault/vaults/delete",
+    ]
+    assert [e["failed"] for e in doc["events"]] == [False, True]

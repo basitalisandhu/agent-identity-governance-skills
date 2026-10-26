@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-26
+
+Second deep pass: trigger evaluation of every description, seeded fuzz tests on every input parser, an end-to-end test across six skills, a performance check on inputs up to 3,000 times the examples, and a README with a real sample in every skill folder.
+
+### Added
+
+- `agent-action-timeline`: `--azure-activity FILE` (repeatable) reads `az monitor activity-log list` output, where managed identities and service principals act on Azure resources. Each row is an event: time from `eventTimestamp`, action `azure:<operationName.value>`, identity from `caller`, `claims.appid` and the object id claim, target `resourceId`, failed when `status.value` is `Failed`. Bundled example `examples/logs/azure-activity.json` (#5).
+- Every skill folder has a `README.md` with the commands that run its script on the bundled examples and the real output, written by `scripts/render_skill_readmes.py`; a test fails when a sample no longer matches the script.
+- `evals/trigger-prompts.yaml`: five should-trigger and five should-not-trigger prompts for every skill, for the skill-trigger-eval scorer.
+- Tests: seeded fuzz tests that damage every input each script reads (`tests/test_fuzz_inputs.py`, `FUZZ_ITERATIONS` for deeper runs); the leaked-key chain through the dispatcher (`tests/test_integration_chain.py`: inventory, timeline, leaked-credential, kill-switch, recertify and audit-chain must agree on the same identity, credential, actions and owners); call-count guards for the three performance fixes (`tests/test_performance.py`). 137 to 166 tests.
+
+### Fixed
+
+- All scripts: a value of the wrong type inside an input file (a number where a string belongs, a list where an object belongs), JSON nested too deep to decode, or a file that is not UTF-8 now exits 2 with a message instead of a traceback. The fuzz run found 28 distinct crash sites across the nine scripts before the fix and none after.
+- `agent-action-timeline`, `leaked-credential-response`, `nhi-inventory`, `agent-audit-log-integrity`: an epoch time too large for the platform (for example `10**20`) raised OverflowError or OSError; it is now an unreadable time.
+
+### Changed
+
+- `agent-audit-log-integrity` `coverage` rebuilt the set of expected ids once per logged id: 100,000 log lines took 193.83 s, now 0.36 s. `entra-agent-id-review` searched every service principal once per blueprint (examples scaled 3,000 times: 4.89 s to 0.15 s) and `agent-recertification` filtered every identity once per owner sheet (11.96 s to 1.25 s). Output is unchanged.
+- Descriptions of `agent-action-timeline`, `agent-kill-switch-runbook`, `agent-recertification`, `credential-expiry-radar`, `entra-agent-id-review`, `leaked-credential-response` and `nhi-inventory` rewritten after the trigger evaluation (lexical proxy, cross mode across the nine skills): precision 0.85 to 0.92 and recall 0.73 to 1.00 overall; `nhi-inventory` recall 0.40 to 1.00, `agent-action-timeline`, `credential-expiry-radar` and `leaked-credential-response` 0.60 to 1.00.
+- Version 0.4.0 in the marketplace, plugin manifest, `pyproject.toml`, the CLI and the container example.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added
