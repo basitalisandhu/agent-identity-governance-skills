@@ -1,0 +1,122 @@
+# Labelled trigger prompts for every skill in this pack: 5 should_trigger and 5 should_not_trigger each, the
+# negatives mixing neighbour skills and unrelated requests. Score the descriptions with trigger_eval.py from the
+# skill-trigger-eval skill (basitalisandhu/claude-code-tooling-skills):
+#   python3 trigger_eval.py evals/trigger-prompts.yaml --skill plugins/agent-identity-governance/skills --cross
+# Add prompts here when a description changes, and keep the old ones so later rewrites are measured the same way.
+agent-action-timeline:
+  should_not_trigger:
+  - Was this agent log edited after the fact?
+  - Set up live alerting when the agent calls a new API
+  - What did Sarah do in the tenant on Monday?
+  - A key from the agent turned up in a commit, was it used?
+  - Tail the application logs on the production server
+  should_trigger:
+  - What did this agent do last week?
+  - Put the agent's CloudTrail and Entra sign-in events in time order for the incident
+  - Show me every action our support bot's identity took yesterday and flag anything unusual
+  - Did the agent do anything outside its allow list in the GitHub audit log?
+  - Before we give the deploy agent more access, reconstruct what it has been doing
+agent-audit-log-integrity:
+  should_not_trigger:
+  - What did this agent do last week, in order?
+  - How long should we retain agent logs?
+  - Ship our logs to S3 with object lock
+  - Build an evidence pack for the SOC 2 audit
+  - Explain how SHA-256 works
+  should_trigger:
+  - Was this agent log edited?
+  - Seal our MCP gateway log with a hash chain before it goes to the auditor
+  - Verify the agent's JSON lines log has no deleted or reordered entries
+  - Check the agent audit log was not truncated against the stored head
+  - Which actions did the agent take that the log never recorded?
+agent-kill-switch-runbook:
+  should_not_trigger:
+  - Disable the agent's service principal now
+  - Offboard the employee who left on Friday
+  - Which agent identities have no owner?
+  - A token leaked in a ticket, which credentials do we rotate first?
+  - Write an incident response policy
+  should_trigger:
+  - How do we turn this agent off?
+  - Write the kill switch runbook for the finance agent before it goes live
+  - Give me ordered steps to disable the agent identity, revoke its sessions and remove its credentials
+  - In the incident, what exactly do we run to stop this agent, and how do we confirm it stopped?
+  - Check the runbook covers every credential and role assignment this agent has
+agent-recertification:
+  should_not_trigger:
+  - Prepare the quarterly access review for human users and admins
+  - Approve these agent identities on the owner's behalf
+  - List every non-human identity we have
+  - Which app secrets expire this month?
+  - Schedule a meeting with the app owners
+  should_trigger:
+  - Prepare the agent access review for this quarter
+  - Send each owner a sheet of the workload identities they must re-attest
+  - Which agent identities were never attested or have attestations older than 90 days?
+  - Build the quarterly recertification of our non-human identities with a tracking CSV
+  - Flag agent identities whose owners have left before the audit
+connector-register:
+  should_not_trigger:
+  - Review this MCP server's code for SSRF
+  - Audit my .claude/settings.json for risky permissions
+  - Install the GitHub MCP server
+  - What can our agent apps do in Entra?
+  - Write a new MCP server in Python
+  should_trigger:
+  - Which MCP servers are we actually running?
+  - 'Check our approved connector register: does every MCP server have an owner and a review date?'
+  - Compare the register with these tools/list outputs and find unregistered tools
+  - Keep a register of the plugins and connectors our agents may use
+  - Get ready for the quarterly connector review
+credential-expiry-radar:
+  should_not_trigger:
+  - Rotate the AWS access key for the build user
+  - A secret leaked in a commit, what could it reach?
+  - Prepare the quarterly access review package
+  - Scan the repo for hard-coded secrets
+  - How do I renew a TLS certificate with certbot?
+  should_trigger:
+  - Which app secrets expire this month?
+  - We had an outage from an expired certificate, find everything else that expires soon
+  - List AWS access keys, GitHub tokens and Entra secrets expiring in the next 30 days by owner
+  - Before the rotation sprint, bucket our credentials at 7, 30 and 90 days
+  - Which agent blueprint credentials have already expired?
+entra-agent-id-review:
+  should_not_trigger:
+  - Which admins still use SMS?
+  - Baseline the whole Entra tenant before the audit
+  - Is it safe to grant admin consent to this one app?
+  - Create an agent identity for our bot in Entra
+  - What is Microsoft Entra ID?
+  should_trigger:
+  - What can our agent apps do in Entra?
+  - Before approving this agent app, check its owner, permissions and redirect URIs
+  - Review our Entra Agent ID blueprints and the permissions agents inherit from them
+  - Do the agent identities in Entra have a sponsor and Conditional Access cover?
+  - Which agent service principals hold high-risk Graph permissions?
+leaked-credential-response:
+  should_not_trigger:
+  - Scan our repositories for secrets
+  - Rotate the leaked key for me
+  - Build an evidence pack for the ISO audit
+  - Which app secrets expire this month?
+  - Write a password manager policy
+  should_trigger:
+  - Was this leaked key used?
+  - An agent's API token turned up in a chat transcript, what could it reach?
+  - A secret for the deploy agent was pushed to GitHub at 10am, what happened after that?
+  - Which credentials do we rotate first after this leak, and build the evidence folder
+  - Someone pasted the agent's access key in a ticket, help me respond
+nhi-inventory:
+  should_not_trigger:
+  - Check the Graph permissions this one app needs before consent
+  - Explain this IAM policy document
+  - Prepare the quarterly access review for staff
+  - Which MCP servers are we running?
+  - Create a new IAM role for the build
+  should_trigger:
+  - Which agent identities have no owner?
+  - We are starting agent identity governance, list every non-human identity we run as
+  - Inventory our service principals, IAM roles and GitHub apps with owner and last use
+  - Find unused machine identities and the oldest credential on each
+  - Merge our hand-kept register with the Entra and AWS exports into one NHI inventory

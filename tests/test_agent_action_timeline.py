@@ -189,3 +189,55 @@ def test_bad_input_exits_2(tmp_path):
     write_json(tmp_path, {"ok.json": {"Records": []}})
     assert run_main(mod, ["--identity", "x", "--cloudtrail", str(tmp_path / "ok.json"), "--since", "soon"])[0] == 2
     assert run_main(mod, [])[0] == 2
+
+
+MI = "00000000-0000-0000-0000-0000000000c3"
+
+
+def azure_rows():
+    """az monitor activity-log list output: one succeeded and one failed operation by a managed identity."""
+    return [
+        {
+            "eventTimestamp": "2026-10-03T10:00:00.1234567Z",
+            "operationName": {"value": "Microsoft.Storage/storageAccounts/listKeys/action"},
+            "caller": MI,
+            "claims": {"appid": "00000000-0000-0000-0000-0000000000a9", "ipaddr": "192.0.2.44"},
+            "resourceId": "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/st1",
+            "status": {"value": "Succeeded"},
+        },
+        {
+            "eventTimestamp": "2026-10-03T10:05:00Z",
+            "operationName": {"value": "Microsoft.KeyVault/vaults/delete"},
+            "caller": "someone@example.com",
+            "claims": {"appid": "00000000-0000-0000-0000-0000000000a9"},
+            "resourceId": "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.KeyVault/vaults/kv1",
+            "status": {"value": "Failed"},
+            "httpRequest": {"clientIpAddress": "198.51.100.9"},
+        },
+        {"eventTimestamp": "2026-10-03T10:06:00Z", "operationName": {"value": "x/read"}, "caller": "other"},
+    ]
+
+
+def test_azure_activity_rows_become_events(tmp_path):
+    write_json(tmp_path, {"az.json": azure_rows()})
+    rc, doc = run_json(mod, ["--identity", MI, "--azure-activity", str(tmp_path / "az.json")])
+    assert rc == 0
+    [e] = doc["events"]
+    assert e["time"] == "2026-10-03T10:00:00Z" and e["source"] == "azure-activity"
+    assert e["action"] == "azure:Microsoft.Storage/storageAccounts/listKeys/action"
+    assert e["target"].endswith("/storageAccounts/st1") and e["ip"] == "192.0.2.44" and e["failed"] is False
+
+
+def test_azure_activity_matches_the_app_id_and_marks_failures(tmp_path):
+    write_json(tmp_path, {"az.json": {"value": azure_rows()}})
+    argv = ["--identity", "00000000-0000-0000-0000-0000000000A9", "--azure-activity", str(tmp_path / "az.json")]
+    allow = write_files(tmp_path, {"allow.txt": "azure:Microsoft.Storage/*\n"}) / "allow.txt"
+    rc, doc = run_json(mod, [*argv, "--allow-list", str(allow)])
+    assert rc == 1 and doc["summary"]["by_source"] == {"azure-activity": 2}
+    failed = [e for e in doc["events"] if e["failed"]]
+    assert [e["action"] for e in failed] == ["azure:Microsoft.KeyVault/vaults/delete"]
+    assert (
+        failed[0]["flags"] == ["first-in-window", "outside-allow-list", "failed"] and failed[0]["ip"] == "198.51.100.9"
+    )
+    _, out, _ = run_main(mod, argv)
+    assert "| azure-activity | azure:Microsoft.KeyVault/vaults/delete |" in out

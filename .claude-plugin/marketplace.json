@@ -7,14 +7,14 @@
     "url": "https://github.com/basitalisandhu"
   },
   "metadata": {
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "agent-identity-governance",
       "source": "./plugins/agent-identity-governance",
       "description": "Nine agent identity governance skills, each with a tested standard-library script over saved Entra, AWS, GitHub and register exports: nhi-inventory, entra-agent-id-review, agent-recertification, credential-expiry-radar, connector-register, agent-action-timeline, agent-kill-switch-runbook, leaked-credential-response and agent-audit-log-integrity. No network calls; key ids shown by their last four characters.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": {
         "name": "Muhammad Basit Ali",
         "url": "https://github.com/basitalisandhu"

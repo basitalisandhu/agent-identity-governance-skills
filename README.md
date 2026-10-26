@@ -58,7 +58,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
    - as a container image (GitHub Packages, linux/amd64 and linux/arm64), published when a version tag is pushed, signed with cosign (keyless), with a build provenance attestation and an SPDX SBOM attached to the GitHub Release. Mount the export folder at `/work`:
 
      ```bash
-     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.3.0 inventory /work/exports --as-of 2026-10-05
+     docker run --rm -v "$PWD:/work" ghcr.io/basitalisandhu/agent-identity-governance-skills:0.4.0 inventory /work/exports --as-of 2026-10-05
      ```
 
 | Subcommand | Script (skill) |
@@ -80,7 +80,7 @@ Questions, bugs and ideas: open an issue on this repository. Security reports: s
 - The quarterly access review covers people but not the service principals, roles and keys behind your automations. `agent-recertification`
 - A secret expired at night and an agent stopped, or access keys are older than the rotation policy. `credential-expiry-radar`
 - MCP servers and connectors were approved one at a time and the list no longer matches what runs. `connector-register`
-- Someone asks what an agent did last week, across Entra, AWS, GitHub and its own logs. `agent-action-timeline`
+- Someone asks what an agent did last week, across Entra, AWS, Azure, GitHub and its own logs. `agent-action-timeline`
 - An agent is about to go live and there is no written way to stop it. `agent-kill-switch-runbook`
 - A key or token belonging to an agent turned up in a commit, a transcript or a log. `leaked-credential-response`
 - An auditor or a customer asks you to prove an agent's audit log was not edited and holds every action. `agent-audit-log-integrity`
@@ -139,7 +139,7 @@ Every script reads local files only, prints Markdown by default and JSON with `-
 | | |
 |---|---|
 | Triggers on | "what did this agent do last week?", "did the agent touch anything outside its job?" |
-| Reads | Entra sign-in and directory audit logs, CloudTrail (lookup-events or log files), the GitHub audit log, application logs in JSON lines |
+| Reads | Entra sign-in and directory audit logs, CloudTrail (lookup-events or log files), the Azure activity log, the GitHub audit log, application logs in JSON lines |
 | Produces | one UTC timeline for the identity under all its names, with bursts, first-seen actions (against a baseline), actions outside an allow list and failures flagged |
 | Script | `agent_action_timeline.py` |
 
